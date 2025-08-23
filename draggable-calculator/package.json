@@ -1,0 +1,34 @@
+{
+  "name": "draggable-calculator",
+  "version": "1.0.1",
+  "description": "A flexible and various platforms compatible draggable calculator.",
+  "keywords": [
+    "calculator",
+    "web-component",
+    "draggable"
+  ],
+  "author": "Rahul k",
+  "license": "MIT",
+  "main": "dist/calculator.cjs.js",
+  "module": "dist/calculator.esm.js",
+  "unpkg": "dist/calculator.iife.js",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/calculator.esm.js",
+      "require": "./dist/calculator.cjs.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rollup -c"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^28.0.6",
+    "@rollup/plugin-node-resolve": "^16.0.1",
+    "@rollup/plugin-terser": "^0.4.4",
+    "rollup": "^4.48.0"
+  }
+}
