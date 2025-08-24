@@ -72,7 +72,7 @@ Example:
 
 ```
 
-![screenshot](/imgs/delete.svg)
+![screenshot](https://raw.githubusercontent.com/rahulak18/Calculator/main/imgs/calculator.png)
 
 ---
 
