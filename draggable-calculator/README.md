@@ -18,7 +18,8 @@ Then in your project:
 import "draggable-calculator";
 
 // React / Vue / Angular / Svelte / Whatever
-<draggable-calculator primary-color="#222" secondary-color="tomato"></draggable-calculator>
+ <draggable-calculator secondary-color="#b51525" primary-color="#2c2e3a"
+            animation-color="#54596B"></draggable-calculator>
 ```
 
 ### Using CDN (the YOLO way):

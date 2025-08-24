@@ -5,9 +5,24 @@ class DraggableCalculator extends HTMLElement {
         this.#appendTmpl();
     }
 
+    static get observedAttributes() {
+        return ["primary-color", "secondary-color", "animation-color", "text-color", "border-color"];
+    }
+
+    attributeChangedCallback(name, oldValue, newValue) {
+        if (oldValue !== newValue) {
+            this.#updateStyles();
+        }
+    }
+
+    #updateStyles() {
+        const style = this.shadowRoot.querySelector("style");
+        style.textContent = this.#getCompStyles();
+    }
+
     #appendTmpl() {
         const template = document.createElement("template");
-        template.innerHTML = this.#getCompStyles() + this.#getTemplate();
+        template.innerHTML = this.#getTemplate();
         this.shadowRoot.appendChild(template.content.cloneNode(true));
     }
 
@@ -18,7 +33,6 @@ class DraggableCalculator extends HTMLElement {
 
     #getCompStyles() {
         return `
-        <style>
                 :host {
                     --primary-color: ${this.getAttribute("primary-color") || "#3a3a3a"};
                     --secondary-color: ${this.getAttribute("secondary-color") || "green"};
@@ -97,11 +111,12 @@ class DraggableCalculator extends HTMLElement {
                     grid-row: span 2;
                     background-color: var(--secondary-color) !important;
                 }
-        </style>`
+        `
     }
 
     #getTemplate() {
         return `
+        <style></style>
         <div class="calcy-calculator">
                 <div class="draggable-container">
                     <span style="cursor: grab;">⠿</span>
@@ -173,10 +188,15 @@ class DraggableCalculator extends HTMLElement {
                 display.value = '';
             }
             else if (buttonText === '=') {
-                if (!(display.value) || ((display.value).includes('Error'))) {
+                try {
+                    if (!(display.value) || ((display.value).includes('Error'))) {
+                        display.value = 'Error';
+                    } else {
+                        display.value = eval(display.value);
+                    }
+                }
+                catch {
                     display.value = 'Error';
-                } else {
-                    display.value = eval(display.value);
                 }
             }
             else {
