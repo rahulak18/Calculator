@@ -68,10 +68,11 @@ Example:
 ## ⚡ Examples
 
 ```html
-<draggable-calculator primary-color="#2a2a2a" secondary-color="red"></draggable-calculator>
+<draggable-calculator secondary-color="#b51525" primary-color="#2c2e3a" animation-color="#54596B" border-color="#2c2e3a"></draggable-calculator>
+
 ```
 
-![screenshot](https://via.placeholder.com/400x400?text=Imagine+a+Cool+Calculator+Here)
+![screenshot](/imgs/delete.svg)
 
 ---
 
