@@ -1,7 +1,7 @@
 {
   "name": "draggable-calculator",
-  "version": "1.1.0",
-  "description": "A flexible and various platforms compatible draggable calculator.",
+  "version": "2.0.0",
+  "description": "Draggable Calculator is a plug-and-play, themeable Web Component that brings a movable calculator straight into your web app. 🎨 Fully customizable with colors (and soon fonts). 🖼 Works everywhere — plain HTML, React, Vue, Angular, or Svelte. Roadmap: Trigonometry functions, unit converters (length, temp, speed, angle), and font customization for a truly personal calculator.",
   "keywords": [
     "calculator",
     "web-component",
