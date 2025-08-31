@@ -43,10 +43,11 @@ class DraggableCalculator extends HTMLElement {
                 <rect y="40" width="56" height="8" rx="4" fill="var(--text-color)"/>
                 </svg>`
     };
-    calculatorOptions = ['standard'];
+    calculatorOptions = ['standard', 'advanced'];
     converterOptions = [];
     domElemMap = {};
     #domElemMapWithEvts = [];
+    #cols = 4;
     isDragging = false;
     offsetX;
     offsetY;
@@ -92,10 +93,13 @@ class DraggableCalculator extends HTMLElement {
     #getStaticElems() {
         this.domElemMap.calcy = this.shadowRoot.querySelector(".calcy-calculator");
         this.domElemMap.calcyDisplay = this.shadowRoot.querySelector(".calcy-display");
+        this.domElemMap.calcyBtnsContainer = this.shadowRoot.querySelector(".calcy-buttons");
         this.domElemMap.calcyBtns = this.shadowRoot.querySelectorAll("button");
         this.domElemMap.dragHandle = this.shadowRoot.querySelector(".draggable-container");
         this.domElemMap.calcyMenu = this.shadowRoot.querySelector(".calcy-header svg");
-        this.domElemMap.calcyOptions = this.shadowRoot.querySelector(".calcy-options");
+        this.domElemMap.calcyOptionsContainer = this.shadowRoot.querySelector(".calcy-options");
+        this.domElemMap.calcyOptions = this.shadowRoot.querySelectorAll(".calcy-options .options .option-name");
+        this.domElemMap.currentSelectedCalcy = this.shadowRoot.querySelector(".current-selected-calcy");
     }
 
     #addEvtDetailsToDomElem(elemMapWithEvt) {
@@ -108,6 +112,9 @@ class DraggableCalculator extends HTMLElement {
         this.domElemMap.calcyBtns.forEach((btn) => {
             this.#addEvtDetailsToDomElem({ elem: btn, event: 'click', evtHandler: this.#handleBtnClick.bind(this) });
         });
+        this.domElemMap.calcyOptions.forEach((option) => {
+            this.#addEvtDetailsToDomElem({ elem: option, event: 'click', evtHandler: this.#handleCalcyOptionClick.bind(this) });
+        });
     }
 
     #bindEvtListeners() {
@@ -117,6 +124,19 @@ class DraggableCalculator extends HTMLElement {
         this.#domElemMapWithEvts.forEach(({ elem, event: evtName, evtHandler }) => {
             elem.addEventListener(evtName, evtHandler);
         })
+    }
+
+    #getCalcyBtnContainerStyles() {
+        return `
+         .calcy-buttons {
+            width: 100%;
+            height: fit-content;
+            display: grid;
+            grid-template-columns: repeat(${this.#cols}, 1fr);
+            border-radius:0 0 8px 8px;
+            overflow:hidden;
+        }
+        `;
     }
 
     #getCompStyles() {
@@ -259,20 +279,13 @@ class DraggableCalculator extends HTMLElement {
                 }
                 input::placeholder { color: var(--text-color); }
 
-                .calcy-buttons {
-                    width: 100%;
-                    height: fit-content;
-                    display: grid;
-                    grid-template-columns: repeat(4, 1fr);
-                    grid-template-rows: repeat(5, 1fr);
-                    border-radius:0 0 8px 8px;
-                    overflow:hidden;
-                }
+               ${this.#getCalcyBtnContainerStyles()}
 
                 .calcy-buttons button {
                     border: 1px solid  var(--border-color);
                     font-size: 18px;
                     background-color: transparent;
+                    letter-spacing:1px;
                     transition: all 0.3s ease-in-out;
                     color: var(--text-color);
                     display: flex;
@@ -341,29 +354,85 @@ class DraggableCalculator extends HTMLElement {
                 <input type="text" class="calcy-display" disabled placeholder="0">
                 
                 <div class="calcy-buttons">
-                    <button type="button" data-value="/">${this.icons.divide}</button>
-                    <button type="button" data-value="*">${this.icons.multiply}</button>
-                    <button type="button" data-value="-">${this.icons.minus}</button>
-                    <button type="button" data-value="DEL">${this.icons.delete}</button>
-                    <button type="button" data-value="7">7</button>
-                    <button type="button" data-value="8">8</button>
-                    <button type="button" data-value="9">9</button>
-                    <button type="button" data-value="CE">CE</button>
-                    <button type="button" data-value="4">4</button>
-                    <button type="button" data-value="5">5</button>
-                    <button type="button" data-value="6">6</button>
-                    <button type="button" data-value="+">${this.icons.plus}</button>
-                    <button type="button" data-value="1">1</button>
-                    <button type="button" data-value="2">2</button>
-                    <button type="button" data-value="3">3</button>
-                    <button type="button" data-value=".">.</button>
-                    <button type="button" data-value="0" class="">0</button>
-                    <button type="button" data-value="(">(</button>
-                    <button type="button" data-value=")">)</button>
-                    <button type="button" data-value="=" class="enter" >${this.icons.equals}</button>
+                    ${this.#getStandardTmpl()}
                 </div>
             </div>
             `;
+    }
+
+    #getStandardTmpl() {
+        return `
+                <button type="button" data-value="/">${this.icons.divide}</button>
+                <button type="button" data-value="*">${this.icons.multiply}</button>
+                <button type="button" data-value="-">${this.icons.minus}</button>
+                <button type="button" data-value="DEL">${this.icons.delete}</button>
+                <button type="button" data-value="7">7</button>
+                <button type="button" data-value="8">8</button>
+                <button type="button" data-value="9">9</button>
+                <button type="button" data-value="CE">CE</button>
+                <button type="button" data-value="4">4</button>
+                <button type="button" data-value="5">5</button>
+                <button type="button" data-value="6">6</button>
+                <button type="button" data-value="+">${this.icons.plus}</button>
+                <button type="button" data-value="1">1</button>
+                <button type="button" data-value="2">2</button>
+                <button type="button" data-value="3">3</button>
+                <button type="button" data-value=".">.</button>
+                <button type="button" data-value="0" class="">0</button>
+                <button type="button" data-value="(">(</button>
+                <button type="button" data-value=")">)</button>
+                <button type="button" data-value="=" class="enter" >${this.icons.equals}</button>
+            `
+    }
+
+    #getAdvancedTmpl() {
+        return `
+                <button type="button" data-value="sin">sin</button>
+                <button type="button" data-value="cos">cos</button>
+                <button type="button" data-value="tan">tan</button>
+                <button type="button" data-value="CE">C</button>
+                <button type="button" data-value="DEL">${this.icons.delete}</button>
+                <button type="button" data-value="square">x^2</button>
+                <button type="button" data-value="cube">x^3</button>
+                <button type="button" data-value="(">(</button>
+                <button type="button" data-value=")">)</button>
+                <button type="button" data-value="/">${this.icons.divide}</button>
+                <button type="button" data-value="reciprocal">1/x</button>
+                <button type="button" data-value="7">7</button>
+                <button type="button" data-value="8">8</button>
+                <button type="button" data-value="9">9</button>
+                <button type="button" data-value="*">${this.icons.multiply}</button>
+                <button type="button" data-value="factorial">x!</button>
+                <button type="button" data-value="4">4</button>
+                <button type="button" data-value="5">5</button>
+                <button type="button" data-value="6">6</button>
+                <button type="button" data-value="-">${this.icons.minus}</button>                
+                <button type="button" data-value="x^y">x^y</button>
+                <button type="button" data-value="1">1</button>
+                <button type="button" data-value="2">2</button>
+                <button type="button" data-value="3">3</button>
+                <button type="button" data-value="+">${this.icons.plus}</button>
+                <button type="button" data-value="pi">pi</button>
+                <button type="button" data-value="abs">abs</button>
+                <button type="button" data-value="0" class="">0</button>
+                <button type="button" data-value=".">.</button>
+                <button type="button" data-value="=" class="enter" >${this.icons.equals}</button>
+            `
+    }
+
+    #updateCalcyTmpl(option) {
+        switch (option) {
+            case 'advanced':
+                this.domElemMap.calcyBtnsContainer.innerHTML = this.#getAdvancedTmpl();
+                this.#cols = 5;
+                this.#updateStyles();
+                break;
+            default:
+                this.#cols = 4;
+                this.domElemMap.calcyBtnsContainer.innerHTML = this.#getStandardTmpl();
+                this.#updateStyles();
+                break;
+        }
     }
 
     #handleCalcyDrag(evt) {
@@ -425,23 +494,32 @@ class DraggableCalculator extends HTMLElement {
 
     #handleMenuClick() {
         // add class xyx to calcy options
-        const isOpen = this.domElemMap.calcyOptions.classList.contains('show');
+        const isOpen = this.domElemMap.calcyOptionsContainer.classList.contains('show');
         if (isOpen) {
-            this.domElemMap.calcyOptions.classList.remove("show");
-            this.domElemMap.calcyOptions.classList.add("hide");
+            this.domElemMap.calcyOptionsContainer.classList.remove("show");
+            this.domElemMap.calcyOptionsContainer.classList.add("hide");
         } else {
-            this.domElemMap.calcyOptions.classList.remove("hide");
-            this.domElemMap.calcyOptions.classList.add("show");
+            this.domElemMap.calcyOptionsContainer.classList.remove("hide");
+            this.domElemMap.calcyOptionsContainer.classList.add("show");
         }
+    }
+
+    #handleCalcyOptionClick(evt) {
+        this.domElemMap.currentSelectedCalcy.innerHTML = evt.currentTarget.innerHTML;
+        this.#updateCalcyTmpl(evt.currentTarget.innerHTML);
+        this.#handleMenuClick();
+    }
+
+    #unbindEventListeners() {
+        this.#domElemMapWithEvts.forEach(({ elem, event: evtName, evtHandler }) => {
+            elem.removeEventListener(evtName, evtHandler);
+        });
     }
 
     disconnectedCallback() {
         document.removeEventListener('mousemove', this._boundHandleMouseMove);
         document.removeEventListener('mouseup', this._boundHandleMouseUp);
-
-        this.#domElemMapWithEvts.forEach(({ elem, event: evtName, evtHandler }) => {
-            elem.removeEventListener(evtName, evtHandler);
-        });
+        this.#unbindEventListeners();
     }
 }
 
