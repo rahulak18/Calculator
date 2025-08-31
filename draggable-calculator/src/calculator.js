@@ -1,6 +1,6 @@
 class DraggableCalculator extends HTMLElement {
 
-    icons = {
+    #icons = {
         divide: `
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" 
          viewBox="0 0 24 24" fill="var(--text-color)">
@@ -43,87 +43,142 @@ class DraggableCalculator extends HTMLElement {
                 <rect y="40" width="56" height="8" rx="4" fill="var(--text-color)"/>
                 </svg>`
     };
-    calculatorOptions = ['standard', 'advanced'];
-    converterOptions = [];
-    domElemMap = {};
+    #calculatorConst = {
+        mode: {
+            STANDARD: 'standard',
+            ADVANCED: 'advanced'
+        },
+
+        evts: {
+            CLICK: 'click',
+            MOUSEDOWN: 'mousedown',
+            MOUSEMOVE: 'mousemove',
+            MOUSEUP: 'mouseup',
+        }
+    }
+    #calculatorOptions = [this.#calculatorConst.mode.STANDARD, this.#calculatorConst.mode.ADVANCED];
+    #converterOptions = [];
+    #domElemMap = {};
+    #rootDomElemMapWithEvts = [];
     #domElemMapWithEvts = [];
     #cols = 4;
-    isDragging = false;
-    offsetX;
-    offsetY;
+    #isDragging = false;
+    #offsetX;
+    #offsetY;
 
     constructor() {
         super();
         this.attachShadow({ mode: "open" });
-        this.#appendTmpl();
     }
-
-    static get observedAttributes() {
-        return ["primary-color", "secondary-color", "animation-color", "text-color", "border-color"];
-    }
-
-    attributeChangedCallback(name, oldValue, newValue) {
-        if (oldValue !== newValue) {
-            this.#updateStyles();
+    /* 
+    // TODO: keep one flag to know whether calculator is rendering for first time or not (freshCalcy) , if yes then dont do any operation on these attrs change, else update the styles accordingly
+        static get observedAttributes() {
+            return ["primary-color", "secondary-color", "animation-color", "text-color", "border-color"];
         }
+    
+        attributeChangedCallback(name, oldValue, newValue) {
+            if (oldValue !== newValue) {
+                this.#updateStyles();
+            }
+        } */
+
+    connectedCallback() {
+        this.#appendRootTmpl();
+        this.#getStaticElems(true);
+        this.#updateDomElemMapWithEvts(true);
+        this._boundHandleMouseMove = this.#handleMouseMove.bind(this);
+        this._boundHandleMouseUp = this.#handleMouseUp.bind(this);
+        this.#bindEvtListeners(true);
+        this.#updateCalculator();
     }
 
-    #updateStyles() {
-        const style = this.shadowRoot.querySelector("style");
-        style.textContent = this.#getCompStyles();
-    }
-
-    #appendTmpl() {
+    // Root template: Template which will be present upfront irrespective of the calculator mode or option.
+    #appendRootTmpl() {
         const template = document.createElement("template");
-        template.innerHTML = this.#getTemplate();
+        template.innerHTML = this.#getRootCalculatorTmpl();
         this.shadowRoot.appendChild(template.content.cloneNode(true));
         this.style.position = 'fixed';
         this.style.zIndex = 9999;
-        this.#updateStyles();
     }
 
-    connectedCallback() {
+    // Root static elems : Elements which are present upfront irrespective of the calculator mode or option.
+    #getStaticElems(isRoot) {
+        if (isRoot) {
+            this.#domElemMap.style = this.shadowRoot.querySelector("style");
+            this.#domElemMap.calculator = this.shadowRoot.querySelector(".calcy-calculator");
+            this.#domElemMap.calcyDisplay = this.shadowRoot.querySelector(".calcy-display");
+            this.#domElemMap.dragHandle = this.shadowRoot.querySelector(".draggable-container");
+            this.#domElemMap.calcyMenu = this.shadowRoot.querySelector(".calcy-header svg");
+            this.#domElemMap.calcyOptionsContainer = this.shadowRoot.querySelector(".calcy-options");
+            this.#domElemMap.calcyOptions = this.shadowRoot.querySelectorAll(".calcy-options .options .option-name");
+            this.#domElemMap.currSelectedCalcy = this.shadowRoot.querySelector(".current-selected-calcy");
+            this.#domElemMap.calcyBtnsContainer = this.shadowRoot.querySelector(".calcy-buttons");
+        }
+        else {
+            this.#domElemMap.calcyBtns = this.shadowRoot.querySelectorAll("button");
+        }
+    }
+
+    #updateDomElemMapWithEvts(isRoot) {
+        if (isRoot) {
+            this.#addEvtDetailsToDomElem({ elem: this.#domElemMap.dragHandle, event: this.#calculatorConst.evts.MOUSEDOWN, evtHandler: this.#handleCalcyDrag.bind(this) }, true);
+            this.#addEvtDetailsToDomElem({ elem: this.#domElemMap.calcyMenu, event: this.#calculatorConst.evts.CLICK, evtHandler: this.#handleMenuClick.bind(this) }, true);
+            this.#domElemMap.calcyOptions.forEach((option) => {
+                this.#addEvtDetailsToDomElem({ elem: option, event: this.#calculatorConst.evts.CLICK, evtHandler: this.#handleCalcyOptionClick.bind(this) }, true);
+            });
+        }
+        else {
+            this.#domElemMap.calcyBtns.forEach((btn) => {
+                this.#addEvtDetailsToDomElem({ elem: btn, event: this.#calculatorConst.evts.CLICK, evtHandler: this.#handleBtnClick.bind(this) });
+            });
+        }
+    }
+
+    #bindEvtListeners(isRoot) {
+        if (isRoot) {
+            document.addEventListener(this.#calculatorConst.evts.MOUSEMOVE, this._boundHandleMouseMove);
+            document.addEventListener(this.#calculatorConst.evts.MOUSEUP, this._boundHandleMouseUp);
+
+            this.#rootDomElemMapWithEvts.forEach(({ elem, event: evtName, evtHandler }) => {
+                elem.addEventListener(evtName, evtHandler);
+            })
+        }
+        else {
+            this.#domElemMapWithEvts.forEach(({ elem, event: evtName, evtHandler }) => {
+                elem.addEventListener(evtName, evtHandler);
+            })
+        }
+
+    }
+
+    #updateCalculator(mode) {
+        this.#unbindEventListeners(this.#domElemMapWithEvts);
+        switch (mode) {
+            case this.#calculatorConst.mode.ADVANCED:
+                this.#cols = 5;
+                this.#domElemMap.calcyBtnsContainer.innerHTML = this.#getAdvancedCalculatorTmpl();
+                break;
+            default:
+                this.#cols = 4;
+                this.#domElemMap.calcyBtnsContainer.innerHTML = this.#getStandardCalculatorTmpl();
+                break;
+        }
+        this.#addTmplStyles();
         this.#getStaticElems();
         this.#updateDomElemMapWithEvts();
-        this._boundHandleMouseMove = this.#handleMouseMove.bind(this);
-        this._boundHandleMouseUp = this.#handleMouseUp.bind(this);
         this.#bindEvtListeners();
     }
 
-    #getStaticElems() {
-        this.domElemMap.calcy = this.shadowRoot.querySelector(".calcy-calculator");
-        this.domElemMap.calcyDisplay = this.shadowRoot.querySelector(".calcy-display");
-        this.domElemMap.calcyBtnsContainer = this.shadowRoot.querySelector(".calcy-buttons");
-        this.domElemMap.calcyBtns = this.shadowRoot.querySelectorAll("button");
-        this.domElemMap.dragHandle = this.shadowRoot.querySelector(".draggable-container");
-        this.domElemMap.calcyMenu = this.shadowRoot.querySelector(".calcy-header svg");
-        this.domElemMap.calcyOptionsContainer = this.shadowRoot.querySelector(".calcy-options");
-        this.domElemMap.calcyOptions = this.shadowRoot.querySelectorAll(".calcy-options .options .option-name");
-        this.domElemMap.currentSelectedCalcy = this.shadowRoot.querySelector(".current-selected-calcy");
+    #addEvtDetailsToDomElem(elemMapWithEvt, isRoot) {
+        if (isRoot)
+            this.#rootDomElemMapWithEvts.push(elemMapWithEvt);
+        else
+            this.#domElemMapWithEvts.push(elemMapWithEvt);
     }
 
-    #addEvtDetailsToDomElem(elemMapWithEvt) {
-        this.#domElemMapWithEvts.push(elemMapWithEvt);
-    }
-
-    #updateDomElemMapWithEvts() {
-        this.#addEvtDetailsToDomElem({ elem: this.domElemMap.dragHandle, event: 'mousedown', evtHandler: this.#handleCalcyDrag.bind(this) });
-        this.#addEvtDetailsToDomElem({ elem: this.domElemMap.calcyMenu, event: 'click', evtHandler: this.#handleMenuClick.bind(this) });
-        this.domElemMap.calcyBtns.forEach((btn) => {
-            this.#addEvtDetailsToDomElem({ elem: btn, event: 'click', evtHandler: this.#handleBtnClick.bind(this) });
-        });
-        this.domElemMap.calcyOptions.forEach((option) => {
-            this.#addEvtDetailsToDomElem({ elem: option, event: 'click', evtHandler: this.#handleCalcyOptionClick.bind(this) });
-        });
-    }
-
-    #bindEvtListeners() {
-        document.addEventListener('mousemove', this._boundHandleMouseMove);
-        document.addEventListener('mouseup', this._boundHandleMouseUp);
-
-        this.#domElemMapWithEvts.forEach(({ elem, event: evtName, evtHandler }) => {
-            elem.addEventListener(evtName, evtHandler);
-        })
+    /* Calculator styles code */
+    #addTmplStyles() {
+        this.#domElemMap.style.textContent = this.#getCompStyles();
     }
 
     #getCalcyBtnContainerStyles() {
@@ -312,144 +367,258 @@ class DraggableCalculator extends HTMLElement {
                 }
         `
     }
+    /* Calculator styles ends here */
 
-    #getOptionsTmpl(option) {
+    /* Template related code */
+    #getOptionsTmpl(options) {
         let tmpl = '';
 
-        option.forEach((opt) => {
+        options.forEach((opt) => {
             tmpl += `<p class="option-name">${opt}</p>`;
         });
 
         return tmpl;
     }
 
-    #getTemplate() {
+    #getRootCalculatorTmpl() {
         return `
         <style></style>
         <div class="calcy-calculator">
+
                 <div class="draggable-container">
                     <span style="cursor: grab;">⠿</span>
                 </div>
 
                 <div class="calcy-options calcy-options-hide hide">
+
                     <div class="calculator-options-container calcy-options-section">
                         <p class="section-name">Calculator</p>
                         <div class="calculator-options options">
-                            ${this.#getOptionsTmpl(this.calculatorOptions)}
+                            ${this.#getOptionsTmpl(this.#calculatorOptions)}
                         </div>
                     </div>
-                    ${this.converterOptions.length > 0 ? `<div class="converter-options-container calcy-options-section">
+
+                    ${this.#converterOptions.length > 0 ? `<div class="converter-options-container calcy-options-section">
                         <p class="section-name">Converter</p>
                         <div class="converter-options options">
-                            ${this.#getOptionsTmpl(this.converterOptions)}
+                            ${this.#getOptionsTmpl(this.#converterOptions)}
                         </div>
                     </div>` : ''}
+
                 </div>
 
                 <div class="calcy-header">
-                    ${this.icons.menu}
+                    ${this.#icons.menu}
                     <p class="current-selected-calcy">Standard</p>
                 </div>
                 
                 <input type="text" class="calcy-display" disabled placeholder="0">
                 
-                <div class="calcy-buttons">
-                    ${this.#getStandardTmpl()}
+                <div class="curr-cal-btns calcy-buttons">
                 </div>
             </div>
             `;
     }
 
-    #getStandardTmpl() {
-        return `
-                <button type="button" data-value="/">${this.icons.divide}</button>
-                <button type="button" data-value="*">${this.icons.multiply}</button>
-                <button type="button" data-value="-">${this.icons.minus}</button>
-                <button type="button" data-value="DEL">${this.icons.delete}</button>
-                <button type="button" data-value="7">7</button>
-                <button type="button" data-value="8">8</button>
-                <button type="button" data-value="9">9</button>
-                <button type="button" data-value="CE">CE</button>
-                <button type="button" data-value="4">4</button>
-                <button type="button" data-value="5">5</button>
-                <button type="button" data-value="6">6</button>
-                <button type="button" data-value="+">${this.icons.plus}</button>
-                <button type="button" data-value="1">1</button>
-                <button type="button" data-value="2">2</button>
-                <button type="button" data-value="3">3</button>
-                <button type="button" data-value=".">.</button>
-                <button type="button" data-value="0" class="">0</button>
-                <button type="button" data-value="(">(</button>
-                <button type="button" data-value=")">)</button>
-                <button type="button" data-value="=" class="enter" >${this.icons.equals}</button>
-            `
+    #getStandardCalculatorTmpl() {
+
+        const standardCalculatorBtns = [
+            {
+                value: "/",
+                tmpl: this.#icons.divide
+            },
+            {
+                value: "*",
+                tmpl: this.#icons.multiply
+            },
+            {
+                value: "-",
+                tmpl: this.#icons.minus
+            },
+            {
+                value: "DEL",
+                tmpl: this.#icons.delete
+            },
+            {
+                value: "7",
+                tmpl: "7"
+            },
+            {
+                value: "8",
+                tmpl: "8"
+            },
+            {
+                value: "9",
+                tmpl: "9"
+            },
+            {
+                value: "CLEAR",
+                tmpl: "C"
+            },
+            {
+                value: "4",
+                tmpl: "4"
+            },
+            {
+                value: "5",
+                tmpl: "5"
+            },
+            {
+                value: "6",
+                tmpl: "6"
+            },
+            {
+                value: "+",
+                tmpl: this.#icons.plus
+            },
+            {
+                value: "1",
+                tmpl: "1"
+            },
+            {
+                value: "2",
+                tmpl: "2"
+            },
+            {
+                value: "3",
+                tmpl: "3"
+            },
+            {
+                value: ".",
+                tmpl: '.'
+            },
+            {
+                value: "(",
+                tmpl: "("
+            },
+            {
+                value: "0",
+                tmpl: "0"
+            },
+            {
+                value: ")",
+                tmpl: ")"
+            },
+            {
+                value: "ENTER",
+                tmpl: '='
+            },
+
+        ];
+
+        let tmpl = '';
+
+        standardCalculatorBtns.forEach(btn => {
+            tmpl += `<button type="button" data-value="${btn.value}" class="${btn.value === 'ENTER' ? 'enter' : ''}" >${btn.tmpl}</button>`;
+        })
+
+        return tmpl;
     }
 
-    #getAdvancedTmpl() {
+    #getAdvancedCalculatorTmpl() {
         return `
                 <button type="button" data-value="sin">sin</button>
                 <button type="button" data-value="cos">cos</button>
                 <button type="button" data-value="tan">tan</button>
                 <button type="button" data-value="CE">C</button>
-                <button type="button" data-value="DEL">${this.icons.delete}</button>
+                <button type="button" data-value="DEL">${this.#icons.delete}</button>
                 <button type="button" data-value="square">x^2</button>
                 <button type="button" data-value="cube">x^3</button>
                 <button type="button" data-value="(">(</button>
                 <button type="button" data-value=")">)</button>
-                <button type="button" data-value="/">${this.icons.divide}</button>
+                <button type="button" data-value="/">${this.#icons.divide}</button>
                 <button type="button" data-value="reciprocal">1/x</button>
                 <button type="button" data-value="7">7</button>
                 <button type="button" data-value="8">8</button>
                 <button type="button" data-value="9">9</button>
-                <button type="button" data-value="*">${this.icons.multiply}</button>
+                <button type="button" data-value="*">${this.#icons.multiply}</button>
                 <button type="button" data-value="factorial">x!</button>
                 <button type="button" data-value="4">4</button>
                 <button type="button" data-value="5">5</button>
                 <button type="button" data-value="6">6</button>
-                <button type="button" data-value="-">${this.icons.minus}</button>                
+                <button type="button" data-value="-">${this.#icons.minus}</button>                
                 <button type="button" data-value="x^y">x^y</button>
                 <button type="button" data-value="1">1</button>
                 <button type="button" data-value="2">2</button>
                 <button type="button" data-value="3">3</button>
-                <button type="button" data-value="+">${this.icons.plus}</button>
+                <button type="button" data-value="+">${this.#icons.plus}</button>
                 <button type="button" data-value="pi">pi</button>
                 <button type="button" data-value="abs">abs</button>
                 <button type="button" data-value="0" class="">0</button>
                 <button type="button" data-value=".">.</button>
-                <button type="button" data-value="=" class="enter" >${this.icons.equals}</button>
+                <button type="button" data-value="=" class="enter" >${this.#icons.equals}</button>
             `
     }
+    /* Template related code ends */
 
-    #updateCalcyTmpl(option) {
-        switch (option) {
-            case 'advanced':
-                this.domElemMap.calcyBtnsContainer.innerHTML = this.#getAdvancedTmpl();
-                this.#cols = 5;
-                this.#updateStyles();
+    #handleBtnClick(evt) {
+        const btnVal = evt.currentTarget.dataset.value;
+        const display = this.#domElemMap.calcyDisplay;
+
+        switch (btnVal) {
+            case 'CLEAR':
+                display.value = '';
                 break;
+
+            case 'DEL':
+                display.value = display.value.slice(0, -1);
+                break;
+
+            case 'ENTER':
+                try {
+                    if (!(display.value) || ((display.value).includes('Error'))) {
+                        display.value = 'Error';
+                    } else {
+                        display.value = eval(display.value);
+                    }
+                }
+                catch {
+                    display.value = 'Error';
+                }
+                break;
+
             default:
-                this.#cols = 4;
-                this.domElemMap.calcyBtnsContainer.innerHTML = this.#getStandardTmpl();
-                this.#updateStyles();
+                display.value += btnVal;
                 break;
         }
     }
 
+    /* Calculator menu , options related handlers */
+    #handleMenuClick() {
+        const containerClasses = this.#domElemMap.calcyOptionsContainer.classList;
+        const isOpen = containerClasses.contains('show');
+        if (isOpen) {
+            containerClasses.remove("show");
+            containerClasses.add("hide");
+        } else {
+            containerClasses.remove("hide");
+            containerClasses.add("show");
+        }
+    }
+
+    #handleCalcyOptionClick(evt) {
+        this.#domElemMap.currSelectedCalcy.innerHTML = evt.currentTarget.innerHTML;
+        this.#updateCalculator(evt.currentTarget.innerHTML);
+        this.#handleMenuClick();
+    }
+    /* Calculator menu , options related handlers ends */
+
+    /* Dragging handlers */
     #handleCalcyDrag(evt) {
-        this.isDragging = true;
-        this.offsetX = evt.clientX - this.domElemMap.calcy.getBoundingClientRect().left;
-        this.offsetY = evt.clientY - this.domElemMap.calcy.getBoundingClientRect().top;
+        this.#isDragging = true;
+        this.#offsetX = evt.clientX - this.#domElemMap.calculator.getBoundingClientRect().left;
+        this.#offsetY = evt.clientY - this.#domElemMap.calculator.getBoundingClientRect().top;
     }
 
     #handleMouseMove(evt) {
-        if (!this.isDragging) return;
+        if (!this.#isDragging) return;
 
-        let x = evt.clientX - this.offsetX;
-        let y = evt.clientY - this.offsetY;
+        let x = evt.clientX - this.#offsetX;
+        let y = evt.clientY - this.#offsetY;
 
-        const maxX = window.innerWidth - this.domElemMap.calcy.offsetWidth;
+        const maxX = window.innerWidth - this.#domElemMap.calculator.offsetWidth;
         const minX = 32;
-        const maxY = window.innerHeight - this.domElemMap.calcy.offsetHeight;
+        const maxY = window.innerHeight - this.#domElemMap.calculator.offsetHeight;
 
         x = Math.max(minX, Math.min(x, maxX));
         y = Math.max(0, Math.min(y, maxY));
@@ -459,67 +628,23 @@ class DraggableCalculator extends HTMLElement {
     }
 
     #handleMouseUp() {
-        this.isDragging = false;
+        this.#isDragging = false;
     }
+    /* End of dragging handlers */
 
-    #handleBtnClick(evt) {
-        const btnVal = evt.currentTarget.dataset.value;
 
-        switch (btnVal) {
-            default:
-                this.domElemMap.calcyDisplay.value += btnVal;
-                break;
-
-            case 'CE':
-                this.domElemMap.calcyDisplay.value = '';
-                break;
-
-            case 'DEL':
-                this.domElemMap.calcyDisplay.value = this.domElemMap.calcyDisplay.value.slice(0, -1);
-                break;
-
-            case '=':
-                try {
-                    if (!(this.domElemMap.calcyDisplay.value) || ((this.domElemMap.calcyDisplay.value).includes('Error'))) {
-                        this.domElemMap.calcyDisplay.value = 'Error';
-                    } else {
-                        this.domElemMap.calcyDisplay.value = eval(this.domElemMap.calcyDisplay.value);
-                    }
-                }
-                catch {
-                    this.domElemMap.calcyDisplay.value = 'Error';
-                }
-        }
-    }
-
-    #handleMenuClick() {
-        // add class xyx to calcy options
-        const isOpen = this.domElemMap.calcyOptionsContainer.classList.contains('show');
-        if (isOpen) {
-            this.domElemMap.calcyOptionsContainer.classList.remove("show");
-            this.domElemMap.calcyOptionsContainer.classList.add("hide");
-        } else {
-            this.domElemMap.calcyOptionsContainer.classList.remove("hide");
-            this.domElemMap.calcyOptionsContainer.classList.add("show");
-        }
-    }
-
-    #handleCalcyOptionClick(evt) {
-        this.domElemMap.currentSelectedCalcy.innerHTML = evt.currentTarget.innerHTML;
-        this.#updateCalcyTmpl(evt.currentTarget.innerHTML);
-        this.#handleMenuClick();
-    }
-
-    #unbindEventListeners() {
-        this.#domElemMapWithEvts.forEach(({ elem, event: evtName, evtHandler }) => {
+    /* Clean up code */
+    #unbindEventListeners(evtsDetails) {
+        evtsDetails.length && evtsDetails.forEach(({ elem, event: evtName, evtHandler }) => {
             elem.removeEventListener(evtName, evtHandler);
         });
     }
 
     disconnectedCallback() {
-        document.removeEventListener('mousemove', this._boundHandleMouseMove);
-        document.removeEventListener('mouseup', this._boundHandleMouseUp);
-        this.#unbindEventListeners();
+        document.removeEventListener(this.#calculatorConst.evts.MOUSEMOVE, this._boundHandleMouseMove);
+        document.removeEventListener(this.#calculatorConst.evts.MOUSEUP, this._boundHandleMouseUp);
+        this.#unbindEventListeners(this.#rootDomElemMapWithEvts);
+        this.#unbindEventListeners(this.#domElemMapWithEvts);
     }
 }
 
