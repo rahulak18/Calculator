@@ -71,7 +71,6 @@ Example:
 <draggable-calculator secondary-color="#b51525" primary-color="#2c2e3a" animation-color="#54596B" border-color="#2c2e3a"></draggable-calculator>
 
 ```
-
 ![screenshot](https://raw.githubusercontent.com/rahulak18/Calculator/main/imgs/calculator.png)
 
 ---
