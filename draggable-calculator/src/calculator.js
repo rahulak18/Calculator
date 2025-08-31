@@ -420,9 +420,18 @@ class DraggableCalculator extends HTMLElement {
             `;
     }
 
+    #getBtnsTmpl(btnsArr) {
+        let tmpl = '';
+        btnsArr.forEach(btn => {
+            tmpl += `<button type="button" data-value="${btn.value}" class="${btn.value === 'ENTER' ? 'enter' : ''}" >${btn.tmpl}</button>`;
+        });
+
+        return tmpl;
+    }
+
     #getStandardCalculatorTmpl() {
 
-        const standardCalculatorBtns = [
+        const standardCalBtns = [
             {
                 value: "/",
                 tmpl: this.#icons.divide
@@ -506,48 +515,135 @@ class DraggableCalculator extends HTMLElement {
 
         ];
 
-        let tmpl = '';
-
-        standardCalculatorBtns.forEach(btn => {
-            tmpl += `<button type="button" data-value="${btn.value}" class="${btn.value === 'ENTER' ? 'enter' : ''}" >${btn.tmpl}</button>`;
-        })
-
-        return tmpl;
+        return this.#getBtnsTmpl(standardCalBtns);
     }
 
     #getAdvancedCalculatorTmpl() {
-        return `
-                <button type="button" data-value="sin">sin</button>
-                <button type="button" data-value="cos">cos</button>
-                <button type="button" data-value="tan">tan</button>
-                <button type="button" data-value="CE">C</button>
-                <button type="button" data-value="DEL">${this.#icons.delete}</button>
-                <button type="button" data-value="square">x^2</button>
-                <button type="button" data-value="cube">x^3</button>
-                <button type="button" data-value="(">(</button>
-                <button type="button" data-value=")">)</button>
-                <button type="button" data-value="/">${this.#icons.divide}</button>
-                <button type="button" data-value="reciprocal">1/x</button>
-                <button type="button" data-value="7">7</button>
-                <button type="button" data-value="8">8</button>
-                <button type="button" data-value="9">9</button>
-                <button type="button" data-value="*">${this.#icons.multiply}</button>
-                <button type="button" data-value="factorial">x!</button>
-                <button type="button" data-value="4">4</button>
-                <button type="button" data-value="5">5</button>
-                <button type="button" data-value="6">6</button>
-                <button type="button" data-value="-">${this.#icons.minus}</button>                
-                <button type="button" data-value="x^y">x^y</button>
-                <button type="button" data-value="1">1</button>
-                <button type="button" data-value="2">2</button>
-                <button type="button" data-value="3">3</button>
-                <button type="button" data-value="+">${this.#icons.plus}</button>
-                <button type="button" data-value="pi">pi</button>
-                <button type="button" data-value="abs">abs</button>
-                <button type="button" data-value="0" class="">0</button>
-                <button type="button" data-value=".">.</button>
-                <button type="button" data-value="=" class="enter" >${this.#icons.equals}</button>
-            `
+        const advCalBtns = [
+            {
+                value: "SIN",
+                tmpl: "sin"
+            },
+            {
+                value: "COS",
+                tmpl: "cos"
+            },
+            {
+                value: "TAN",
+                tmpl: "tan"
+            },
+            {
+                value: "CLEAR",
+                tmpl: "C"
+            },
+            {
+                value: "DEL",
+                tmpl: this.#icons.delete
+            },
+            {
+                value: "SQUARE",
+                tmpl: "x^2"
+            },
+            {
+                value: "CUBE",
+                tmpl: "x^3"
+            },
+            {
+                value: "(",
+                tmpl: "("
+            },
+            {
+                value: ")",
+                tmpl: ")"
+            },
+            {
+                value: "/",
+                tmpl: this.#icons.divide
+            },
+            {
+                value: "RECIPROCAL",
+                tmpl: "1/x"
+            },
+            {
+                value: "7",
+                tmpl: "7"
+            },
+            {
+                value: "8",
+                tmpl: "8"
+            },
+            {
+                value: "9",
+                tmpl: "9"
+            },
+            {
+                value: "*",
+                tmpl: this.#icons.multiply
+            },
+            {
+                value: "FACTORIAL",
+                tmpl: "x!"
+            },
+            {
+                value: "4",
+                tmpl: "4"
+            },
+            {
+                value: "5",
+                tmpl: "5"
+            },
+            {
+                value: "6",
+                tmpl: "6"
+            },
+            {
+                value: "-",
+                tmpl: this.#icons.minus
+            },
+            {
+                value: "POWER",
+                tmpl: "x^y"
+            },
+            {
+                value: "1",
+                tmpl: "1"
+            },
+            {
+                value: "2",
+                tmpl: "2"
+            },
+            {
+                value: "3",
+                tmpl: "3"
+            },
+            {
+                value: "+",
+                tmpl: this.#icons.plus
+            },
+            {
+                value: "PI",
+                tmpl: "pi"
+            },
+            {
+                value: "ABS",
+                tmpl: "abs"
+            },
+            {
+                value: "0",
+                tmpl: "0"
+            },
+            {
+                value: ".",
+                tmpl: "."
+            },
+            {
+                value: "ENTER",
+                tmpl: this.#icons.equals
+            },
+
+        ];
+
+        return this.#getBtnsTmpl(advCalBtns);
     }
     /* Template related code ends */
 
